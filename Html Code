@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Real-time Stock Prices</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.5.4/socket.io.js"></script>
+    <style>
+        canvas {
+            max-width: 600px;
+            margin: 20px auto;
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <h2>Stock Prices</h2>
+
+    <canvas id="AAPLChart"></canvas>
+    <canvas id="TSLAChart"></canvas>
+    <canvas id="AMZNChart"></canvas>
+
+    <script>
+        var socket = io();
+
+        // Function to create a new Chart.js chart
+        function createChart(ctx, label) {
+            return new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: [], // Time points
+                    datasets: [{
+                        label: label + " Price",
+                        data: [],
+                        borderColor: 'blue',
+                        fill: false
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    scales: {
+                        x: { title: { display: true, text: 'Time' } },
+                        y: { title: { display: true, text: 'Price ($)' } }
+                    }
+                }
+            });
+        }
+
+        // Initialize charts for AAPL, TSLA, and AMZN
+        var AAPLChart = createChart(document.getElementById('AAPLChart').getContext('2d'), "AAPL");
+        var TSLAChart = createChart(document.getElementById('TSLAChart').getContext('2d'), "TSLA");
+        var AMZNChart = createChart(document.getElementById('AMZNChart').getContext('2d'), "AMZN");
+
+        socket.on('stock_update', function (data) {
+            var now = new Date().toLocaleTimeString();
+
+            function updateChart(chart, price) {
+                if (chart.data.labels.length > 10) {
+                    chart.data.labels.shift();
+                    chart.data.datasets[0].data.shift();
+                }
+                chart.data.labels.push(now);
+                chart.data.datasets[0].data.push(price);
+                chart.update();
+            }
+
+            updateChart(AAPLChart, data.AAPL);
+            updateChart(TSLAChart, data.TSLA);
+            updateChart(AMZNChart, data.AMZN);
+        });
+    </script>
+</body>
+</html>
