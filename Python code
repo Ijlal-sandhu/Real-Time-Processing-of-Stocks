@@ -1,0 +1,31 @@
+from flask import Flask, render_template
+from flask_socketio import SocketIO
+import yfinance as yf
+import time
+
+app = Flask(__name__)
+socketio = SocketIO(app, cors_allowed_origins="*")
+
+@app.route('/')
+def index():
+    return render_template('index.html')
+
+def fetch_stock_price():
+    stock_symbols = ["AAPL", "TSLA", "AMZN"]  # Apple, Tesla, Amazon
+
+    while True:
+        stock_data = {}
+        for symbol in stock_symbols:
+            stock = yf.Ticker(symbol)
+            price = stock.history(period="1d")['Close'].iloc[-1]
+            stock_data[symbol] = price  # Store stock price in a dictionary
+
+        socketio.emit('stock_update', stock_data)  # Send all stock prices
+        time.sleep(5)  # Fetch new data every 5 seconds
+
+@socketio.on('connect')
+def on_connect():
+    socketio.start_background_task(fetch_stock_price)  # Start fetching prices when user connects
+
+if __name__ == '__main__':
+    socketio.run(app, debug=True)
